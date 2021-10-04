@@ -9,4 +9,4 @@ findPrime: timing.o prime.o main.o
 	gcc -o findPrime  timing.o prime.o main.o -I. -O2 -lm -lpthread
 
 clean:
-	rm -r *.o findPrime
+	rm -rf *.o findPrime
