@@ -96,9 +96,6 @@ int main( int argc, char* argv[] )
         sum += h_results[i];
     printf("final result: %d\n", sum);
  
-//    for (bignum i = 0; i<n; i++) {
-//	printf("%ld:%ld\n", h_numbers[i], h_results[i]);
-//    }
     // Release device memory
     cudaFree(d_numbers);
     cudaFree(d_results);
