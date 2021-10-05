@@ -1,4 +1,4 @@
 to compile and run:
 
-nvcc main.cu -o findprime && ./findprime 1000
+nvcc lab1.cu -o lab1 && ./lab1 1000
 
