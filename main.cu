@@ -25,14 +25,15 @@ __device__ int isPrime(bignum x)
     return 1;
 }
 
-__global__ void checkPrimes(int *results, bignum *numbers, int n)
+__global__ void checkPrimes(int *results, int arr_size)
 {
     // Get our global thread ID
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-
-    // Make sure we do not go out of bounds
-    if (index < n)
-        results[index] = isPrime(numbers[index]);
+    bignum index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index < arr_size)
+    {
+        bignum number = 2 * index + 1;
+        results[index] = isPrime(number);
+    }
 }
 
 int main(int argc, char *argv[])
@@ -46,37 +47,32 @@ int main(int argc, char *argv[])
     bignum n = (bignum)atoi(argv[1]);
 
     // Host input vectors
-    bignum *h_numbers;
     int *h_results;
 
     // Device input vectors
-    bignum *d_numbers;
-    // Device output vector
     int *d_results;
 
+    size_t arr_size = (int)ceil((float) ((n - 1.0) / 2.0));
+    printf("arr_size: %ld\n", arr_size);
+
     // Size, in bytes, of each vector
-    size_t bytes_numbers = n * sizeof(bignum);
-    size_t bytes_results = n * sizeof(int);
+    size_t results_num_bytes = arr_size * sizeof(int);
 
     // Allocate memory for each vector on host
-    h_numbers = (bignum *)malloc(bytes_numbers);
-    h_results = (int *)malloc(bytes_results);
+    h_results = (int *)malloc(results_num_bytes);
 
     // Allocate memory for each vector on GPU
-    cudaMalloc(&d_numbers, bytes_numbers);
-    cudaMalloc(&d_results, bytes_results);
+    cudaMalloc(&d_results, results_num_bytes);
 
     bignum i;
     // Initialize vectors on host
-    for (i = 0; i < n; i++)
+    for (i = 0; i < arr_size; i++)
     {
-        h_numbers[i] = i + 1;
         h_results[i] = 0;
     }
 
     // Copy host vectors to device
-    cudaMemcpy(d_numbers, h_numbers, bytes_numbers, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_results, h_results, bytes_results, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_results, h_results, results_num_bytes, cudaMemcpyHostToDevice);
 
     int blockSize, gridSize;
 
@@ -84,26 +80,29 @@ int main(int argc, char *argv[])
     blockSize = 1024;
 
     // Number of thread blocks in grid
-    gridSize = (int)ceil((float)n / blockSize);
+    gridSize = (int)ceil((float) ((n + 1.0) / 2.0 / blockSize));
+    // gridSize = (int)ceil((float)n / blockSize);
+    printf("gridSize: %d\n", gridSize);
+    printf("gridSize * blockSize: %d\n", gridSize*blockSize);
 
     // Execute the kernel
-    checkPrimes<<<gridSize, blockSize>>>(d_results, d_numbers, n);
+    checkPrimes<<<gridSize, blockSize>>>(d_results, arr_size);
 
     // Copy array back to host
-    cudaMemcpy(h_results, d_results, bytes_results, cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_results, d_results, results_num_bytes, cudaMemcpyDeviceToHost);
 
     // Sum up vector c and print result divided by n, this should equal 1 without error
-    int sum = 0;
-    for (i = 0; i < n; i++)
+    bignum sum = 0;
+    for (i = 0; i < arr_size; i++)
+    {
         sum += h_results[i];
-    printf("final result: %d\n", sum);
+    }
+    printf("final result: %lld\n", sum);
 
     // Release device memory
-    cudaFree(d_numbers);
     cudaFree(d_results);
 
     // Release host memory
-    free(h_numbers);
     free(h_results);
 
     return 0;
